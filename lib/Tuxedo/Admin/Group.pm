@@ -35,6 +35,8 @@ sub init
   ($error, %output_buffer) = $self->{admin}->_tmib_get(\%input_buffer);
   carp($self->_status()) if ($error < 0);
 
+  $self->exists($output_buffer{'TA_OCCURS'}[0] eq '1');
+
   delete $output_buffer{'TA_OCCURS'};
   delete $output_buffer{'TA_ERROR'};
   delete $output_buffer{'TA_MORE'};
@@ -56,22 +58,19 @@ sub init
       $self->{$key} = undef;
     }
   }
-  $self->exists(0);
-  $self->exists(1) if $self->grpno();
 }
 
 sub exists
 {
   my $self = shift;
-  return $self->{exists} if @_ == 0;
-  $self->{exists} = $_[0];
+  $self->{exists} = $_[0] if (@_ != 0);
+  return $self->{exists};
 }
 
 sub add
 {
   my $self = shift;
 
-  croak "Group already exists!"  if $self->exists();
   croak "srvgrp MUST be set"     unless $self->srvgrp();
   croak "grpno MUST be set"      unless $self->grpno();
   croak "lmid MUST be set"       unless $self->lmid();
@@ -82,6 +81,7 @@ sub add
   $input_buffer{'TA_STATE'}     = [ 'NEW' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
   carp($self->_status()) if ($error < 0);
+  $self->exists(1) unless ($error < 0);
   return $error;
 }
 
@@ -120,7 +120,9 @@ sub _set_state
 sub remove
 {
   my $self = shift;
-  return $self->_set_state('INVALID');
+  my $error = $self->_set_state('INVALID');
+  $self->exists(0) unless ($error < 0);
+  return $error;
 }
 
 sub boot

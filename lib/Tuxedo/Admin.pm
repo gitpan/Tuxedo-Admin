@@ -1,6 +1,6 @@
 package Tuxedo::Admin;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use Carp;
 use strict;
@@ -294,10 +294,9 @@ sub service_list
 
 sub local_access_point
 {
-  croak "Invalid parameters" unless (@_ == 4);
-  my ($self, $access_point_name, $access_point_id, $group_name) = @_;
-  return new Tuxedo::Admin::LocalAccessPoint(
-    $self, $access_point_name, $access_point_id, $group_name);
+  my $self         = shift || croak "local_access_point: Invalid parameters";
+  my $access_point = shift || croak "local_access_point: Invalid parameters";
+  return new Tuxedo::Admin::LocalAccessPoint($self, $access_point);
 }
 
 sub local_access_point_list
@@ -336,9 +335,7 @@ sub local_access_point_list
   {
     $local_access_point = new Tuxedo::Admin::LocalAccessPoint(
                             $self, 
-                            $output_buffer{TA_DMACCESSPOINT}[$i],
-                            $output_buffer{TA_DMACCESSPOINTID}[$i],
-                            $output_buffer{TA_DMSRVGROUP}[$i]
+                            $output_buffer{TA_DMACCESSPOINT}[$i]
                           );
     $local_access_points[$i] = $local_access_point;
   }

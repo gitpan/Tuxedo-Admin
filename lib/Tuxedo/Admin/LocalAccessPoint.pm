@@ -32,21 +32,17 @@ use Data::Dumper;
 
 sub init
 {
-  my $self = shift;
-  ($self->{admin}, $self->{dmaccesspoint}, 
-   $self->{dmaccesspointid}, $self->{dmsrvgroup}) = @_;
-
-  croak "Invalid parameters" unless 
-    ((defined $self->{admin}) and
-     (defined $self->{dmaccesspoint}) and
-     (defined $self->{dmaccesspointid}) and
-     (defined $self->{dmsrvgroup}));
+  my $self               = shift || croak "init: Invalid parameters";
+  $self->{admin}         = shift || croak "init: Invalid parameters";
+  $self->{dmaccesspoint} = shift || croak "init: Invalid parameters";
 
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
   $input_buffer{'TA_CLASS'}     = [ 'T_DM_LOCAL' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_get(\%input_buffer);
   carp($self->_status()) if ($error < 0);
+
+  $self->exists($output_buffer{'TA_OCCURS'}[0] eq '1');
 
   delete $output_buffer{'TA_OCCURS'};
   delete $output_buffer{'TA_ERROR'};
@@ -69,10 +65,13 @@ sub init
       $self->{$key} = undef;
     }
   }
-  $self->{tdomains} = 
-    $self->{admin}->tdomain_list( 
-      { 'dmaccesspoint' => $self->dmaccesspoint() }
-    );
+}
+
+sub exists
+{
+  my $self = shift;
+  $self->{exists} = $_[0] if (@_ != 0);
+  return $self->{exists};
 }
 
 sub add
@@ -95,6 +94,7 @@ sub add
   $input_buffer{'TA_STATE'}     = [ 'NEW' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
   carp($self->_status()) if ($error < 0);
+  $self->exists(1) unless ($error < 0);
   return $error;
 }
 
@@ -102,13 +102,17 @@ sub update
 {
   my $self = shift;
 
-  croak "dmaccesspoint MUST be set"     unless $self->dmaccesspoint();
+  croak "Local Access Point does not exist!" unless $self->exists();
+  croak "dmaccesspoint MUST be set"          unless $self->dmaccesspoint();
 
   my (%input_buffer, $error, %output_buffer, $tdomain);
 
   %input_buffer = $self->_fields();
-  delete $input_buffer{'TA_DMRETRY_INTERVAL'}
-    if ($self->dmmaxretry() == 0);
+
+  # Constraints
+  delete $input_buffer{'TA_DMRETRY_INTERVAL'}; #FIXME
+  #    if ($self->dmmaxretry() == 0);
+
   delete $input_buffer{'TA_STATE'};
   delete $input_buffer{'TA_DMFAILOVERSEQ'}; # FIXME
   delete $input_buffer{'TA_DMTLOGDEV'};     # FIXME
@@ -126,22 +130,25 @@ sub remove
 {
   my $self = shift;
 
-  croak "dmaccesspoint MUST be set"     unless $self->dmaccesspoint();
+  croak "Local Access Point does not exist!" unless $self->exists();
+  croak "dmaccesspoint MUST be set"          unless $self->dmaccesspoint();
 
   my (%input_buffer, $error, %output_buffer, $tdomain);
 
   foreach $tdomain ($self->tdomains())
   {
-    next unless defined $tdomain;
+    #print "Removing tdomain...\n";
     $error = $tdomain->remove();
+    $self->{admin}->print_status();
     return $error if ($error < 0);
   }
-
+ 
   $input_buffer{'TA_CLASS'}         = [ 'T_DM_LOCAL' ];
   $input_buffer{'TA_STATE'}         = [ 'INVALID' ];
   $input_buffer{'TA_DMACCESSPOINT'} = [ $self->dmaccesspoint() ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
   carp($self->_status()) if ($error < 0);
+  $self->exists(0) unless ($error < 0);
   return $error;
 }
 
@@ -149,7 +156,12 @@ sub tdomains
 {
   my $self = shift;
   croak "Invalid arguments" if (@_ != 0);
-  return $self->{tdomains};
+  croak "Local Access Point does not exist" unless $self->exists();
+  my @tdomains =
+    $self->{admin}->tdomain_list( 
+      { 'dmaccesspoint' => $self->dmaccesspoint() }
+    );
+  return @tdomains;
 }
 
 sub _status
@@ -166,7 +178,8 @@ sub _fields
   foreach $key (keys %data)
   {
     next if ($key eq 'admin');
-    next if ($key eq 'tdomains');
+    next if ($key eq 'exists');
+    #next if ($key eq 'tdomains');
     $field = "TA_$key";
     $field =~ tr/a-z/A-Z/;
     $fields{$field} = [ $data{$key} ];
@@ -180,8 +193,73 @@ sub hash
   my (%data);
   %data = %{ $self };
   delete $data{admin};
-  delete $data{tdomains};
+  #delete $data{tdomains};
   return %data;
 }
+
+=pod
+
+Tuxedo::Admin::LocalAccessPoint
+
+=head1 SYNOPSIS
+
+  use Tuxedo::Admin;
+
+  $admin = new Tuxedo::Admin;
+
+  $local_access_point = $admin->local_access_point('ACCESS_POINT_NAME');
+  
+  if ($local_access_point->exists())
+  {
+    print "Connection Policy: ",
+          $local_access_point->dmconnection_policy(), "\n";
+  
+    $local_access_point->dmconnection_policy('ON_DEMAND');
+    $error = $local_access_point->update();
+  }
+
+=head1 DESCRIPTION
+
+Provides methods to query, add, remove and update a local access point.
+
+=head1 INITIALISATION
+
+Tuxedo::Admin::LocalAccessPoint are not instantiated directly.  Instead they
+are created via the local_access_pount() method of a Tuxedo::Admin object.
+
+Example:
+
+  $local_access_point =
+    $admin->local_access_point('ACCESS_POINT_NAME');
+  
+This applies both for existing servers and for new servers that are being
+created.
+
+=head1 METHODS
+
+=head2 exists()
+
+Used to determine whether or not the local access point exists in the current
+Tuxedo application.
+
+  if ($local_access_point->exists())
+  {
+    ...
+  }
+
+Returns true if the local access point exists.
+
+
+=head2 add()
+
+Adds the local access point to the current Tuxedo application.
+
+  $error = $local_access_point->add();
+
+Croaks if the local access point already exists or if the required
+dmaccesspoint, dmaccesspointid and dmsrvgroup parameters are not set.  If
+$error is negative then an error occurred.
+
+=cut
 
 1;

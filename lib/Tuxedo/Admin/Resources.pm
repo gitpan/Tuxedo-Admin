@@ -141,4 +141,187 @@ sub hash
   return %data;
 }
 
+=pod
+
+Tuxedo::Admin::Resources
+
+=head1 SYNOPSIS
+
+  use Tuxedo::Admin;
+
+  $admin = new Tuxedo::Admin;
+
+  $resources = $admin->resources();
+
+  $resources->maxservices(200);
+
+  print "Max services: ", $resources->maxservices(), "\n";
+
+=head1 DESCRIPTION
+
+Provides methods to query and dynamically update the Tuxedo parameters in the
+RESOURCES section of the ubbconfig configuration file.
+
+=head1 METHODS
+
+=head2 get/set methods
+
+The following methods are available to get and set the resource parameters.
+If an argument is provided then the parameter value is set to be the argument
+value.  The value of the parameter is returned.
+
+=over
+
+=item authsvc()
+
+=item bblquery()
+
+=item blocktime()
+
+=item cmtret()
+
+=item components()
+
+=item curdrt()
+
+=item curgroups()
+
+=item curinterfaces()
+
+=item curmachines()
+
+=item curqueues()
+
+=item currft()
+
+=item currtdata()
+
+=item curservers()
+
+=item curservices()
+
+=item curstype()
+
+=item curtype()
+
+=item dbblwait()
+
+=item domainid()
+
+=item encryption_required()
+
+=item gid()
+
+=item hwdrt()
+
+=item hwgroups()
+
+=item hwinterfaces()
+
+=item hwmachines()
+
+=item hwqueues()
+
+=item hwrft()
+
+=item hwrtdata()
+
+=item hwservers()
+
+=item hwservices()
+
+=item ipckey()
+
+=item ldbal()
+
+=item licexpire()
+
+=item licmaxusers()
+
+=item licserial()
+
+=item master()
+
+=item maxaccessers()
+
+=item maxaclgroups()
+
+=item maxbufstype()
+
+=item maxbuftype()
+
+=item maxconv()
+
+=item maxdrt()
+
+=item maxgroups()
+
+=item maxgtt()
+
+=item maxinterfaces()
+
+=item maxmachines()
+
+=item maxnetgroups()
+
+=item maxobjects()
+
+=item maxqueues()
+
+=item maxrft()
+
+=item maxrtdata()
+
+=item maxservers()
+
+=item maxservices()
+
+=item maxspdata()
+
+=item maxtrantime()
+
+=item mibmask()
+
+=item model()
+
+=item notify()
+
+=item operation()
+
+=item options()
+
+=item perm()
+
+=item preferences()
+
+=item sanityscan()
+
+=item scanunit()
+
+=item sec_principal_location()
+
+=item sec_principal_name()
+
+=item sec_principal_passvar()
+
+=item security()
+
+=item signature_ahead()
+
+=item signature_behind()
+
+=item signature_required()
+
+=item state()
+
+=item system_access()
+
+=item uid()
+
+=item usignal()
+
+=back
+
+=cut
+
 1;

@@ -125,11 +125,11 @@ sub error_code_text
     if ($error_code == -10);
   return "TAEUNIQ - SET did not specify unique class instance"
     if ($error_code == -11);
-  return "TAOK - Suceeded"
+  return "TAOK - Succeeded"
     if ($error_code == 0);
-  return "TAUPDATED - Suceeded and updated a record"
+  return "TAUPDATED - Succeeded and updated a record"
     if ($error_code == 1);
-  return "TAPARTIAL - Suceeded at master; failed elsewhere"
+  return "TAPARTIAL - Succeeded at master; failed elsewhere"
     if ($error_code == 2);
   return "UNKNOWN";
 }
@@ -231,6 +231,44 @@ method may be used to obtain a description of the error that occurred.
 =head2 status()
 
 Returns a description of the result of the most recent tpcall() method call.
+
+=head2 error_code_text()
+
+Given an error code as input, returns a description of the error.
+
+Below are the error codes with their corresponsing descriptions:
+
+=over
+
+=item -1 "TAEAPP - Application component error during MIB processing"
+
+=item -2 "TAECONFIG - Operating system error"
+
+=item -3 "TAEINVAL - Invalid argument"
+
+=item -4 "TAEOS - Operating system error"
+
+=item -5 "TAEPERM - Permission error"
+
+=item -6 "TAEPREIMAGE - Preimage does not match current image"
+
+=item -7 "TAEPROTO - MIB specific protocol error"
+
+=item -8 "TAEREQUIRED - Field value required but not present"
+
+=item -9 "TAESUPPORT - Documented but unsupported feature"
+
+=item -10 "TAESYSTEM - Internal System /T error"
+
+=item -11 "TAEUNIQ - SET did not specify unique class instance"
+
+=item 0 "TAOK - Succeeded"
+
+=item 1 "TAUPDATED - Succeeded and updated a record"
+
+=item 2 "TAPARTIAL - Succeeded at master; failed elsewhere"
+
+=back
 
 =head1 AUTHOR
 

@@ -13,6 +13,7 @@ Changes
 Makefile.PL
 MANIFEST
 README
+t/1.t
 t/group/add.pl
 t/group/boot.pl
 t/group/list.pl
@@ -21,9 +22,9 @@ t/group/resume.pl
 t/group/servers.pl
 t/group/shutdown.pl
 t/group/suspend.pl
-t/local_access_point/lap_add.pl
-t/local_access_point/lap_del.pl
-t/local_access_point/lap_update.pl
+t/local_access_point/add.pl
+t/local_access_point/remove.pl
+t/local_access_point/update.pl
 t/local_access_point/list.pl
 t/resources/get.pl
 t/resources/set.pl

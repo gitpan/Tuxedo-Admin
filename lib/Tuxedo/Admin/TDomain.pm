@@ -95,7 +95,8 @@ sub remove
 {
   my $self = shift;
 
-  croak "dmaccesspoint MUST be set"     unless $self->dmaccesspoint();
+  croak "dmaccesspoint MUST be set"  unless $self->dmaccesspoint();
+  croak "dmnwaddr MUST be set"       unless $self->dmnwaddr();
 
   my (%input_buffer, $error, %output_buffer);
   #%input_buffer = $self->_fields();

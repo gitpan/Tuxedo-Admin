@@ -128,7 +128,6 @@ sub add
 {
   my $self = shift;
 
-  croak "Server already exists!" if $self->exists();
   croak "srvgrp MUST be set"     unless $self->srvgrp();
   croak "srvid MUST be set"      unless $self->srvid();
   croak "servername MUST be set" unless $self->servername();
