@@ -172,6 +172,7 @@ sub _fields
   foreach $key (keys %data)
   {
     next if ($key eq 'admin');
+    next if ($key eq 'exists');
     next if ($key eq 'tdomains');
     $field = "TA_$key";
     $field =~ tr/a-z/A-Z/;

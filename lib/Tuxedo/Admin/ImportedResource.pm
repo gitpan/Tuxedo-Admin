@@ -112,11 +112,33 @@ sub update
 
   croak "Does not exist!"                 unless $self->exists();
   croak "dmresourcename MUST be set"      unless $self->dmresourcename();
-  #croak "dmraccesspointlist MUST be set"  unless $self->dmraccesspointlist();
+  croak "dmlaccesspoint MUST be set"      unless $self->dmlaccesspoint();
+  croak "dmraccesspointlist MUST be set"  unless $self->dmraccesspointlist();
 
   my (%input_buffer, $error, %output_buffer);
 
   %input_buffer = $self->_fields();
+  delete $input_buffer{'TA_STATE'};
+  delete $input_buffer{'TA_DMROUTINGNAME'};
+  delete $input_buffer{'TA_DMINBUFTYPE'};
+  delete $input_buffer{'TA_DMOUTBUFTYPE'};
+  delete $input_buffer{'TA_DMCODEPAGE'};
+  delete $input_buffer{'TA_DMTE_PRODUCT'};
+  delete $input_buffer{'TA_DMTE_FUNCTION'};
+  delete $input_buffer{'TA_DMTE_TARGET'};
+  delete $input_buffer{'TA_DMTE_QUALIFIER'};
+  delete $input_buffer{'TA_DMTE_RTQGROUP'};
+  delete $input_buffer{'TA_DMTE_RTQNAME'};
+  delete $input_buffer{'TA_DMAUTOPREPARE'};
+  delete $input_buffer{'TA_DMINRECTYPE'};
+  delete $input_buffer{'TA_DMOUTRECTYPE'};
+  delete $input_buffer{'TA_DMTPSUTTYPE'};
+  delete $input_buffer{'TA_DMREMTPSUT'};
+
+  delete $input_buffer{'TA_DMBLOCKTIME'}
+    unless (($input_buffer{'TA_DMBLOCKTIME'} >= 0) and
+            ($input_buffer{'TA_DMBLOCKTIME'} <= 32767)); 
+
 
   $input_buffer{'TA_CLASS'}     = [ 'T_DM_IMPORT' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
@@ -129,13 +151,15 @@ sub remove
   my $self = shift;
 
   croak "dmresourcename MUST be set"      unless $self->dmresourcename();
-  #croak "dmraccesspointlist MUST be set"  unless $self->dmraccesspointlist();
+  croak "dmlaccesspoint MUST be set"      unless $self->dmraccesspointlist();
+  croak "dmraccesspointlist MUST be set"  unless $self->dmraccesspointlist();
 
   my (%input_buffer, $error, %output_buffer);
 
   $input_buffer{'TA_CLASS'}         = [ 'T_DM_IMPORT' ];
   $input_buffer{'TA_STATE'}         = [ 'INVALID' ];
   $input_buffer{'TA_DMRESOURCENAME'}     = [ $self->dmresourcename() ];
+  $input_buffer{'TA_DMLACCESSPOINT'}     = [ $self->dmlaccesspoint() ];
   $input_buffer{'TA_DMRACCESSPOINTLIST'} = [ $self->dmraccesspointlist() ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
 
@@ -165,6 +189,7 @@ sub _fields
   foreach $key (keys %data)
   {
     next if ($key eq 'admin');
+    next if ($key eq 'exists');
     $field = "TA_$key";
     $field =~ tr/a-z/A-Z/;
     $fields{$field} = [ $data{$key} ];
@@ -249,7 +274,7 @@ Example:
   
   unless ($imported_resource->exists())
   {
-    $imported_resource->dmlaccesspointlist('LOCAL1');
+    $imported_resource->dmlaccesspoint('LOCAL1');
     $imported_resource->dmraccesspointlist('*');
     $rc = $imported_resource->add();
     $admin->print_status();

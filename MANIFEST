@@ -14,6 +14,7 @@ Makefile.PL
 MANIFEST
 README
 t/1.t
+t/exported_resource/exported_services.pl
 t/group/add.pl
 t/group/boot.pl
 t/group/list.pl
@@ -22,6 +23,11 @@ t/group/resume.pl
 t/group/servers.pl
 t/group/shutdown.pl
 t/group/suspend.pl
+t/imported_resource/add.pl
+t/imported_resource/get.pl
+t/imported_resource/imported_services.pl
+t/imported_resource/remove.pl
+t/imported_resource/update.pl
 t/local_access_point/add.pl
 t/local_access_point/remove.pl
 t/local_access_point/update.pl

@@ -1,4 +1,4 @@
-Tuxedo/Admin version 0.07
+Tuxedo/Admin version 0.08
 =========================
 
 This module aims to make runtime administration of a Tuxedo environment
@@ -10,10 +10,7 @@ It provides a simple object-oriented Perl interface to the Tuxedo MIBs
 allowing the caller to query, add or update the various components of the
 Tuxedo environment, such as servers, groups, access points etc.
 
-Version 0.07 is a clean-up and documentation release, and more test cases have
-been added.  It has still only been tested against Tuxedo 8.1, but I plan to
-ensure that it works against at least Tuxedo 6.5 and up.  There are some
-examples under the t/ directory and in the documentation.
+See the "Changes" file for details of what has changed in this version.
 
 INSTALLATION
 

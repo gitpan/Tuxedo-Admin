@@ -1,5 +1,14 @@
 Revision history for Perl extension Tuxedo::Admin.
 
+0.0.8  Mon Jun 30 00:06:21 BST 2003
+  - Fixed showstopper bug in the _fields() method of a lot of classes - the
+    "exists" field was incorrectly included resulting in an invalid TA_EXISTS
+    field being sent.  Added a debug() method to Admin.pm and ud32.pm that
+    allows tracing of input and output buffers to be turned on and off - very
+    useful for debugging and if you're a bit paranoid (as you should be :-).
+    ImportedResource.pm now works - added some tests for this.  More
+    documentation fixes.
+
 0.0.7  Sun Jun 29 16:26:21 BST 2003
   - Version 0.07 is a clean-up and documentation release, and more test cases
     have been added.  It has still only been tested against Tuxedo 8.1, but I

@@ -46,7 +46,7 @@ sub tpcall
         $self->{'TUXDIR'} .  '/bin/ud32 -e 1 -C tpsysadm 2>/dev/null')
     or croak "Can't run $self->{'tuxdir'}/bin/ud32\n";
 
-  #print "Input Buffer: ", Dumper($input_buffer), "\n";
+  print "Input Buffer: ", Dumper($input_buffer), "\n" if $self->debug();
   print WRITER "SRVCNM\t$service_name\n";
   foreach $field (keys %{ $input_buffer })
   {
@@ -81,7 +81,7 @@ sub tpcall
     }
   }
   close(READER);
-  #print "Output Buffer: ", Dumper(\%output_buffer), "\n";
+  print "Output Buffer: ", Dumper(\%output_buffer), "\n" if $self->debug();
 
   $error_code = $output_buffer{TA_ERROR}[0];
   if (exists $output_buffer{TA_STATUS})
@@ -153,6 +153,13 @@ sub status
   {
     croak("Invalid arguments\n");
   }
+}
+
+sub debug
+{
+  my $self = shift;
+  $self->{debug} = $_[0] if (@_ == 1);
+  return $self->{debug};
 }
 
 =pod

@@ -157,6 +157,7 @@ sub _fields
   foreach $key (keys %data)
   {
     next if ($key eq 'admin');
+    next if ($key eq 'exists');
     $field = "TA_$key";
     $field =~ tr/a-z/A-Z/;
     $fields{$field} = [ $data{$key} ];

@@ -1,6 +1,6 @@
 package Tuxedo::Admin;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Carp;
 use strict;
@@ -542,6 +542,12 @@ sub imported_resource_list
   return @imported_resources;
 }
 
+sub debug
+{
+  my $self = shift;
+  $self->{client}->debug($_[0]) if (@_ == 1);
+  return $self->{client}->debug();
+}
 
 =pod
 
@@ -752,17 +758,10 @@ filter.
 Retrieves information about a specific imported resource.
 
   $imported_resource = 
-    $admin->imported_resource($resource_name,
-                              $remote_access_point_list,
-                              $local_access_point_list);
+    $admin->imported_resource($resource_name);
 
-where $resource_name is the name of the imported resource,
-$remote_access_point_list is a comma-separated list of remote access point
-names from which this resource can be imported (or '*' to indicate all remote
-access points) and $local_access_point_list is a comma-separated list of local
-access points through which the resource will be made available (or '*' to
-indicate that it will be available through all local domains).
-$imported_resource is a reference to a Tuxedo::Admin::ImportedResource object.
+where $resource_name is the name of the imported resource.  $imported_resource
+is a reference to a Tuxedo::Admin::ImportedResource object.
 
 =head2 imported_resource_list
 
@@ -779,13 +778,10 @@ objects that match the filter.
 
 Retrieves information about a specific exported resource.
 
-  $exported_resource =
-    $admin->exported_resource($resource_name, $local_access_point_name);
+  $exported_resource = $admin->exported_resource($resource_name);
 
-where $resource_name is the name of the exported resource and
-$local_access_point_name is the name of the local access point from which this
-resource is made available.  $exported_resource is a reference to a
-Tuxedo::Admin::ExportedResource object.
+where $resource_name is the name of the exported resource.  $exported_resource
+is a reference to a Tuxedo::Admin::ExportedResource object.
 
 =head2 exported_resource_list
 
