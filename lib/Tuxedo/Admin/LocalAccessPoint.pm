@@ -32,9 +32,12 @@ use Data::Dumper;
 
 sub init
 {
-  my $self               = shift || croak "init: Invalid parameters";
-  $self->{admin}         = shift || croak "init: Invalid parameters";
-  $self->{dmaccesspoint} = shift || croak "init: Invalid parameters";
+  my $self               = shift
+    || croak "init: Invalid parameters: expected self";
+  $self->{admin}         = shift
+    || croak "init: Invalid parameters: expected admin";
+  $self->{dmaccesspoint} = shift
+    || croak "init: Invalid parameters: expected dmaccesspoint";
 
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
@@ -93,8 +96,16 @@ sub add
   $input_buffer{'TA_CLASS'}     = [ 'T_DM_LOCAL' ];
   $input_buffer{'TA_STATE'}     = [ 'NEW' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
-  carp($self->_status()) if ($error < 0);
-  $self->exists(1) unless ($error < 0);
+  
+  if ($error < 0)
+  {
+    carp($self->_status());
+  }
+  else
+  {
+    $self->exists(1);
+  }
+  
   return $error;
 }
 
@@ -147,8 +158,16 @@ sub remove
   $input_buffer{'TA_STATE'}         = [ 'INVALID' ];
   $input_buffer{'TA_DMACCESSPOINT'} = [ $self->dmaccesspoint() ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
-  carp($self->_status()) if ($error < 0);
-  $self->exists(0) unless ($error < 0);
+
+  if ($error < 0)
+  {
+    carp($self->_status());
+  }
+  else
+  {
+    $self->exists(0);
+  }
+
   return $error;
 }
 
@@ -158,9 +177,7 @@ sub tdomains
   croak "Invalid arguments" if (@_ != 0);
   croak "Local Access Point does not exist" unless $self->exists();
   my @tdomains =
-    $self->{admin}->tdomain_list( 
-      { 'dmaccesspoint' => $self->dmaccesspoint() }
-    );
+    $self->{admin}->tdomain_list( { 'dmaccesspoint' => $self->dmaccesspoint() } );
   return @tdomains;
 }
 
@@ -179,7 +196,6 @@ sub _fields
   {
     next if ($key eq 'admin');
     next if ($key eq 'exists');
-    #next if ($key eq 'tdomains');
     $field = "TA_$key";
     $field =~ tr/a-z/A-Z/;
     $fields{$field} = [ $data{$key} ];
@@ -215,7 +231,7 @@ Tuxedo::Admin::LocalAccessPoint
           $local_access_point->dmconnection_policy(), "\n";
   
     $local_access_point->dmconnection_policy('ON_DEMAND');
-    $error = $local_access_point->update();
+    $rc = $local_access_point->update();
   }
 
 =head1 DESCRIPTION
@@ -224,15 +240,15 @@ Provides methods to query, add, remove and update a local access point.
 
 =head1 INITIALISATION
 
-Tuxedo::Admin::LocalAccessPoint are not instantiated directly.  Instead they
-are created via the local_access_pount() method of a Tuxedo::Admin object.
-
+Tuxedo::Admin::LocalAccessPoint objects are not instantiated directly.  Instead
+they are created via the local_access_point() method of a Tuxedo::Admin 
+object.
 Example:
 
   $local_access_point =
     $admin->local_access_point('ACCESS_POINT_NAME');
   
-This applies both for existing servers and for new servers that are being
+This applies both for existing access points and for new access points that are being
 created.
 
 =head1 METHODS
@@ -254,12 +270,136 @@ Returns true if the local access point exists.
 
 Adds the local access point to the current Tuxedo application.
 
-  $error = $local_access_point->add();
+  $rc = $local_access_point->add();
 
 Croaks if the local access point already exists or if the required
 dmaccesspoint, dmaccesspointid and dmsrvgroup parameters are not set.  If
-$error is negative then an error occurred.
+$rc is negative then an error occurred.  If successful then the exists()
+method will return true.
+
+Example:
+
+  $local_access_point = $admin->local_access_point('LOCAL2');
+  unless ($local_access_point->exists())
+  {
+    $local_access_point->dmaccesspointid('LOCAL2_ID');
+    $local_access_point->dmsrvgroup('GW_GRP_2');
+    $rc = $local_access_point->add();
+    $admin->print_status();    
+    die if ($rc < 0);
+
+    $tdomain1 = $admin->tdomain('LOCAL2', 'hostname:8765');
+    $rc = $tdomain1->add();
+    $admin->print_status();    
+    die if ($rc < 0);
+
+    $tdomain2 = $admin->tdomain('LOCAL2', 'hostname:8766');
+    $rc = $tdomain2->add();
+    $admin->print_status();
+    die if ($rc < 0);
+  }
+  else
+  {
+    print STDERR "Already exists!\n";
+  }  
+  
+=head2 update()
+
+Updates the local access point configuration with the values of the current
+object.
+
+  $rc = $local_access_point->update();
+
+Croaks if the local access point does not exist or if the required
+dmaccesspoint parameter is not set.  If $rc is negative then an error
+occurred. 
+
+Example:
+
+  $local_access_point = $admin->local_access_point('LOCAL2');
+  if ($local_access_point->exists() and
+      ($local_access_point->dmconnection_policy() ne 'ON_DEMAND'))
+  {
+    $local_access_point->dmconnection_policy('ON_DEMAND');
+    $local_access_point->update();
+  }
+  
+=head2 remove()
+
+Removes the local access point from the current Tuxedo application.
+
+  $rc = $local_access_point->remove();
+
+Croaks if the local access point does not exist or if the required
+dmaccesspoint parameter is not set.  If $rc is negative then an error
+occurred.
+
+Example:
+
+  $local_access_point = $admin->local_access_point('LOCAL2');
+  if ($local_access_point->exists())
+  {
+    $local_access_point->remove();
+  }
+  
+=head2 get/set methods
+
+The following methods are available to get and set the local access point 
+parameters.  If an argument is provided then the parameter value is set to be 
+the argument value.  The value of the parameter is returned.
+
+Example:
+
+  # Get the connection policy
+  print $local_access_point->dmconnection_policy(), "\n";
+
+  # Set the connection policy
+  $local_access_point->dmconnection_policy('ON_DEMAND');
+
+=over
+
+=item dmaccesspoint()
+
+=item dmaccesspointid()
+
+=item dmauditlog()
+
+=item dmblob_shm_size()
+
+=item dmblocktime()
+
+=item dmcodepage()
+
+=item dmconnection_policy()
+
+=item dmconnprincipalname()
+
+=item dmmachinetype()
+
+=item dmmaxraptran()
+
+=item dmmaxretry()
+
+=item dmmaxtran()
+
+=item dmretry_interval()
+
+=item dmsecurity()
+
+=item dmsrvgroup()
+
+=item dmtlogdev()
+
+=item dmtlogname()
+
+=item dmtlogsize()
+
+=item dmtype()
+
+=item state()
+
+
+=back
 
 =cut
-
 1;

@@ -35,12 +35,12 @@ use Data::Dumper;
 
 sub init
 {
-  my $self = shift;
-  ($self->{admin}, $self->{dmresourcename}) = @_;
-
-  croak "Invalid parameters" unless
-    ((defined $self->{admin}) and
-     (defined $self->{dmresourcename}));
+  my $self                = shift
+    || croak "init: Invalid parameters: expected self";
+  $self->{admin}          = shift
+    || croak "init: Invalid parameters: expected admin";
+  $self->{dmresourcename} = shift
+    || croak "init: Invalid parameters: expected dmresourcename";
 
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
@@ -48,6 +48,8 @@ sub init
   ($error, %output_buffer) = $self->{admin}->_tmib_get(\%input_buffer);
   carp($self->_status()) if ($error < 0);
 
+  $self->exists($output_buffer{'TA_OCCURS'}[0] eq '1');
+  
   delete $output_buffer{'TA_OCCURS'};
   delete $output_buffer{'TA_ERROR'};
   delete $output_buffer{'TA_MORE'};
@@ -71,6 +73,13 @@ sub init
   }
 }
 
+sub exists
+{
+  my $self = shift;
+  $self->{exists} = $_[0] if (@_ != 0);
+  return $self->{exists};
+}
+
 sub add
 {
   my $self = shift;
@@ -84,7 +93,16 @@ sub add
   $input_buffer{'TA_CLASS'}     = [ 'T_DM_IMPORT' ];
   $input_buffer{'TA_STATE'}     = [ 'NEW' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
-  carp($self->_status()) if ($error < 0);
+
+  if ($error < 0)
+  {
+    carp($self->_status());
+  }
+  else
+  {
+    $self->exists(1);
+  }
+  
   return $error;
 }
 
@@ -92,10 +110,11 @@ sub update
 {
   my $self = shift;
 
+  croak "Does not exist!"                 unless $self->exists();
   croak "dmresourcename MUST be set"      unless $self->dmresourcename();
-  croak "dmraccesspointlist MUST be set"  unless $self->dmraccesspointlist();
+  #croak "dmraccesspointlist MUST be set"  unless $self->dmraccesspointlist();
 
-  my (%input_buffer, $error, %output_buffer, $tdomain);
+  my (%input_buffer, $error, %output_buffer);
 
   %input_buffer = $self->_fields();
 
@@ -110,23 +129,25 @@ sub remove
   my $self = shift;
 
   croak "dmresourcename MUST be set"      unless $self->dmresourcename();
-  croak "dmraccesspointlist MUST be set"  unless $self->dmraccesspointlist();
+  #croak "dmraccesspointlist MUST be set"  unless $self->dmraccesspointlist();
 
-  my (%input_buffer, $error, %output_buffer, $tdomain);
-
-  foreach $tdomain ($self->tdomains())
-  {
-    next unless defined $tdomain;
-    $error = $tdomain->remove();
-    return $error if ($error < 0);
-  }
+  my (%input_buffer, $error, %output_buffer);
 
   $input_buffer{'TA_CLASS'}         = [ 'T_DM_IMPORT' ];
   $input_buffer{'TA_STATE'}         = [ 'INVALID' ];
   $input_buffer{'TA_DMRESOURCENAME'}     = [ $self->dmresourcename() ];
   $input_buffer{'TA_DMRACCESSPOINTLIST'} = [ $self->dmraccesspointlist() ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
-  carp($self->_status()) if ($error < 0);
+
+  if ($error < 0)
+  {
+    carp($self->_status());
+  }
+  else
+  {
+    $self->exists(0);
+  }
+  
   return $error;
 }
 
@@ -159,5 +180,176 @@ sub hash
   delete $data{admin};
   return %data;
 }
+
+=pod
+
+Tuxedo::Admin::ImportedResource
+
+=head1 SYNOPSIS
+
+  use Tuxedo::Admin;
+
+  $admin = new Tuxedo::Admin;
+
+  $imported_resource = $admin->imported_resource('BillingDetails'');
+
+  $rc = $imported_resource->remove()
+    if $imported_resource->exists();
+
+  unless ($imported_resource->exists())
+  {
+    $rc = $imported_resource->add();
+    die $admin->status() if ($rc < 0);
+  }
+
+=head1 DESCRIPTION
+
+Provides methods to query, add, remove and update an imported resource.
+
+=head1 INITIALISATION
+
+Tuxedo::Admin::ImportedResource objects are not instantiated directly.  
+Instead they are created via the imported_resource() method of a Tuxedo::Admin
+object.
+
+Example:
+
+  $imported_resource = $admin->imported_resource('BillingDetails');
+
+This applies both for existing imported resources and for new imported
+resources that are being created.
+ 
+=head1 METHODS
+
+=head2 exists()
+
+Used to determine whether or not the imported resource exists in the current
+Tuxedo application.
+
+  if ($imported_resource->exists())
+  {
+    ...
+  }
+
+Returns true if the imported resource exists.
+
+=head2 add()
+
+Adds the imported resource to the current Tuxedo application.
+
+  $rc = $imported_resource->add();
+
+Croaks if the imported resource already exists or if the required
+dmresourcename parameter is not set.  If $rc is negative then an error
+occurred.  If successful then the exists() method will return true.
+
+Example:
+
+  $imported_resource = $admin->imported_resource('BillingDetails');
+  
+  unless ($imported_resource->exists())
+  {
+    $imported_resource->dmlaccesspointlist('LOCAL1');
+    $imported_resource->dmraccesspointlist('*');
+    $rc = $imported_resource->add();
+    $admin->print_status();
+  }
+
+=head2 update()
+
+Updates the imported resource configuration with the values of the current
+object.
+
+  $rc = $imported_resource->update();
+
+Croaks if the imported resource does not exist or if the required
+dmresourcename parameter is not set.  If $rc is negative then an error 
+occurred.
+
+=head2 remove()
+
+Removes the imported resource from the current Tuxedo application.
+
+  $rc = $imported_resource->remove();
+
+Croaks if the imported resource does not exist or if the required
+dmresourcename parameter is not set.  If $rc is negative then an error 
+occurred.
+
+Example:
+
+  $imported_resource = $admin->imported_resource('BillingDetails');
+  if ($imported_resource->exists())
+  {
+    $imported_resource->remove();
+  }
+
+=head2 get/set methods
+
+The following methods are available to get and set the imported resource
+parameters.  If an argument is provided then the parameter value is set to be 
+the argument value.  The value of the parameter is returned.
+
+Example:
+
+  # Get the remote name
+  print $imported_resource->dmremotename(), "\n";
+
+  # Set the remote name
+  $imported_resource->dmremotename('BillDetails');
+
+=over
+
+=item dmapi()
+
+=item dmautotran()
+
+=item dmblocktime()
+
+=item dmcodepage()
+
+=item dmconv()
+
+=item dmfunction()
+
+=item dminbuftype()
+
+=item dmlaccesspoint()
+
+=item dmload()
+
+=item dmoutbuftype()
+
+=item dmprio()
+
+=item dmraccesspointlist()
+
+=item dmremotename()
+
+=item dmresourcename()
+
+=item dmresourcetype()
+
+=item dmroutingname()
+
+=item dmte_function()
+
+=item dmte_product()
+
+=item dmte_qualifier()
+
+=item dmte_rtqgroup()
+
+=item dmte_rtqname()
+
+=item dmte_target()
+
+=item dmtrantime()
+
+=item state()
+
+=back
+
+=cut
 
 1;

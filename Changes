@@ -1,5 +1,11 @@
 Revision history for Perl extension Tuxedo::Admin.
 
+0.0.7  Sun Jun 29 16:26:21 BST 2003
+  - Version 0.07 is a clean-up and documentation release, and more test cases
+    have been added.  It has still only been tested against Tuxedo 8.1, but I
+    plan to ensure that it works against at least Tuxedo 6.5 and up.  There
+    are some examples under the t/ directory and in the documentation.
+
 0.06  Wed Jun 25 23:54:13 2003
   - The main reason for this release is to have a working 'make test', so that
     the cpan-testers don't get failed builds.  I'm busy reworking the API so

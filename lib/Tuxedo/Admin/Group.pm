@@ -25,9 +25,9 @@ use strict;
 
 sub init
 {
-  my $self = shift;
-  ($self->{admin}, $self->{srvgrp}) = @_;
-  croak "Invalid parameters" unless ($self->{admin} and $self->{srvgrp});
+  my $self        = shift || croak "init: Invalid parameters: expected self";
+  $self->{admin}  = shift || croak "init: Invalid parameters: expected admin";
+  $self->{srvgrp} = shift || croak "init: Invalid parameters: expected srvgrp";   
 
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
@@ -80,8 +80,16 @@ sub add
   $input_buffer{'TA_CLASS'}     = [ 'T_GROUP' ];
   $input_buffer{'TA_STATE'}     = [ 'NEW' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
-  carp($self->_status()) if ($error < 0);
-  $self->exists(1) unless ($error < 0);
+  
+  if ($error < 0)
+  {
+    carp($self->_status());
+  }
+  else
+  {
+    $self->exists(1);
+  }
+  
   return $error;
 }
 
@@ -94,6 +102,9 @@ sub update
 
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
+  
+  # Constraints
+  
   $input_buffer{'TA_CLASS'}     = [ 'T_GROUP' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
   carp($self->_status()) if ($error < 0);
@@ -105,7 +116,7 @@ sub _set_state
   my ($self, $state) = @_;
 
   croak "Group does not exist!" unless $self->exists();
-  croak "srvgrp MUST be set"     unless $self->srvgrp();
+  croak "srvgrp MUST be set"    unless $self->srvgrp();
 
   my (%input_buffer, $error, %output_buffer);
 
@@ -221,8 +232,15 @@ Tuxedo::Admin::Group
 
   $group->grpno('50');
   $group->lmid('master');
+  $group->update();
+  
+  ...
 
-  $group->add($group);
+  unless ($group->exists())
+  {
+    $rc = $group->add($group);
+    $admin->print_status();
+  }  
 
   foreach $group ($admin->group_list())
   {
@@ -264,10 +282,10 @@ Returns true if the group exists.
 
 Adds the group to the current Tuxedo application.
 
-  $ok = $group->add();
+  $rc = $group->add();
 
 Croaks if the group already exists or if the required srvgrp, grpno and lmid
-parameters are not set.  Returns true on success.
+parameters are not set.  $rc is non-negative on success.
 
 Example:
 
@@ -277,8 +295,8 @@ Example:
   $group->grpno('50');
   $group->lmid('yoda');
   
-  $ok = $group->add($group);
-  print "Welcome!" if $ok;
+  $rc = $group->add($group);
+  print "Welcome!" unless ($rc < 0);
   
   $admin->print_status();
   
@@ -286,10 +304,10 @@ Example:
 
 Removes the group from the current Tuxedo application.
 
-  $ok = $group->remove();
+  $rc = $group->remove();
 
 Croaks if the group is booted or if the required srvgrp parameter is not set.
-Returns true on success.
+$rc is non-negative on success.
 
 Example:
 
@@ -298,10 +316,10 @@ Example:
   warn "Can't remove a group while it is booted.\n"
     unless ($group->state() eq 'INACTIVE');
   
-  $ok = $group->remove()
+  $rc = $group->remove()
     if ($group->exists() and ($group->state() eq 'INACTIVE'));
 
-  print "hasta la vista baby!" if $ok;
+  print "hasta la vista baby!" unless ($rc < 0);
   
   $admin->print_status();
   
@@ -312,64 +330,69 @@ Updates the group configuration with the values of the current object.
   $ok = $group->update();
 
 Croaks if the group does not exist or the required srvgrp parameter is not
-set.  Returns true on success.
+set.  $rc is non-negative on success.
+
 
 =head2 boot()
 
 Starts all servers in this group.
 
-  $ok = $group->boot();
+  $rc = $group->boot();
 
-Croaks if the group is already booted.  Returns true on success.
+Croaks if the group is already booted.  $rc is non-negative on success.
 
 Example:
 
   $group = $admin->group('GW_GRP_1');
-  $ok = $group->boot()
+  $rc = $group->boot()
     if ($group->exists() and ($group->state() ne 'ACTIVE'));
-  
+
+    
 =head2 shutdown()
 
 Stops all servers in this group.
 
-  $ok = $group->shutdown();
+  $rc = $group->shutdown();
 
-Croaks if the group is not running.  Returns true on success.
+Croaks if the group is not running.  $rc is non-negative on success.
 
 Example:
 
   $group = $admin->group('GW_GRP_1');
-  $ok = $group->shutdown() 
+  $rc = $group->shutdown() 
     if ($group->exists() and ($group->state() ne 'INACTIVE'));
+  
   
 =head2 suspend()
 
 Suspends all services advertised by servers in this group.
 
-  $ok = $group->suspend();
+  $rc = $group->suspend();
 
-Croaks if the group is not active.  Returns true on success.
+Croaks if the group is not active.  $rc is non-negative on success.
 
 Example:
 
   $group = $admin->group('GW_GRP_1');
-  $ok = $group->suspend()
+  $rc = $group->suspend()
     if ($group->exists() and ($group->state() eq 'ACTIVE'));
-  
+
+    
 =head2 resume()
 
 Unsuspends all services advertised by servers in this group.
 
-  $ok = $group->resume();
+  $rc = $group->resume();
 
-Croaks if the group is not active.  Returns true on success.
+Croaks if the group is not active.  $rc is non-negative on success.
 
 Example:
 
   $group = $admin->group('GW_GRP_1');
-  $ok = $group->resume() 
+  $rc = $group->resume() 
     if ($group->exists() and ($group->state() eq 'ACTIVE'));
   
+
 =head2 servers()
 
 Returns the list of servers in this group.
@@ -377,6 +400,14 @@ Returns the list of servers in this group.
   @servers = $group->servers();
 
 where @servers is an array of references to Tuxedo::Admin::Server objects.
+
+Example:
+
+  foreach $server ($group->servers())
+  {
+    print $server->servername(), "\t", $server->srvid(), "\n";
+  }
+
 
 =head2 get/set methods
 

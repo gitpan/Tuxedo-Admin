@@ -1,6 +1,6 @@
 package Tuxedo::Admin;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use Carp;
 use strict;
@@ -47,7 +47,7 @@ sub new
 sub _tmib_get
 {
   my ($self, $input_buffer) = @_;
-	my (%buffer, $field, $occurrence, $error, %output_buffer);
+  my (%buffer, $field, $occurrence, $error, %output_buffer);
   $input_buffer->{'TA_OPERATION'} = [ 'GET' ];
   do
   {
@@ -73,16 +73,16 @@ sub _tmib_get
     $input_buffer->{'TA_OPERATION'}[0] = 'GETNEXT';
   } 
   while (exists $buffer{'TA_MORE'} and ($buffer{'TA_MORE'}[0] ne '0'));
-	return ($error, %output_buffer);
+  return ($error, %output_buffer);
 }
 
 sub _tmib_set
 {
   my ($self, $input_buffer) = @_;
-	my ($error, %output_buffer);
+  my ($error, %output_buffer);
   $input_buffer->{'TA_OPERATION'} = [ 'SET' ];
   ($error, %output_buffer) = $self->{client}->tpcall('.TMIB', $input_buffer);
-	return ($error, %output_buffer);
+  return ($error, %output_buffer);
 }
 
 sub status
@@ -186,7 +186,7 @@ sub server_list
               );
     $servers[$i] = $server;
   }
-  return (wantarray ? @servers : $servers[0]);
+  return @servers;
 }
 
 sub group
@@ -216,7 +216,6 @@ sub group_list
     }
   }
 
-  #%input_buffer = $_[0]->fields() if (@_ == 1);
   $input_buffer{'TA_CLASS'} = [ 'T_GROUP' ];
   ($error, %output_buffer) = $self->_tmib_get(\%input_buffer);
   croak($self->status() . "\n") if ($error < 0);
@@ -237,7 +236,7 @@ sub group_list
              );
     $groups[$i] = $group;
   }
-  return (wantarray ? @groups : $groups[0]);
+  return @groups;
 }
 
 sub service
@@ -289,13 +288,13 @@ sub service_list
                );
     $services[$i] = $service;
   }
-  return (wantarray ? @services : $services[0]);
+  return @services;
 }
 
 sub local_access_point
 {
-  my $self         = shift || croak "local_access_point: Invalid parameters";
-  my $access_point = shift || croak "local_access_point: Invalid parameters";
+  croak "Invalid parameters" unless (@_ == 2);
+  my ($self, $access_point) = @_;
   return new Tuxedo::Admin::LocalAccessPoint($self, $access_point);
 }
 
@@ -339,15 +338,14 @@ sub local_access_point_list
                           );
     $local_access_points[$i] = $local_access_point;
   }
-  return (wantarray ? @local_access_points : $local_access_points[0]);
+  return @local_access_points;
 }
 
 sub remote_access_point
 {
-  croak "Invalid parameters" unless (@_ == 3);
-  my ($self, $access_point_name, $access_point_id) = @_;
-  return new Tuxedo::Admin::RemoteAccessPoint(
-    $self, $access_point_name, $access_point_id);
+  croak "Invalid parameters" unless (@_ == 2);
+  my ($self, $access_point_name) = @_;
+  return new Tuxedo::Admin::RemoteAccessPoint($self, $access_point_name);
 }
 
 sub remote_access_point_list
@@ -386,12 +384,11 @@ sub remote_access_point_list
   {
     $remote_access_point = new Tuxedo::Admin::RemoteAccessPoint(
                              $self, 
-                             $output_buffer{TA_DMACCESSPOINT}[$i],
-                             $output_buffer{TA_DMACCESSPOINTID}[$i]
+                             $output_buffer{TA_DMACCESSPOINT}[$i]
                            );
     $remote_access_points[$i] = $remote_access_point;
   }
-  return (wantarray ? @remote_access_points : $remote_access_points[0]);
+  return @remote_access_points;
 }
 
 sub tdomain
@@ -442,7 +439,7 @@ sub tdomain_list
                            );
     $tdomains[$i] = $tdomain;
   }
-  return (wantarray ? @tdomains : $tdomains[0]);
+  return @tdomains;
 }
 
 sub exported_resource
@@ -492,7 +489,7 @@ sub exported_resource_list
                            );
     $exported_resources[$i] = $exported_resource;
   }
-  return (wantarray ? @exported_resources : $exported_resources[0]);
+  return @exported_resources;
 }
 
 sub imported_resource
@@ -542,7 +539,7 @@ sub imported_resource_list
                            );
     $imported_resources[$i] = $imported_resource;
   }
-  return (wantarray ? @imported_resources : $imported_resources[0]);
+  return @imported_resources;
 }
 
 

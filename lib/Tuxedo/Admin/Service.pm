@@ -28,17 +28,23 @@ use strict;
 
 sub init
 {
-  my $self = shift;
-  ($self->{admin}, $self->{servicename}, $self->{srvgrp}) = @_;
-  croak "Invalid parameters" unless 
-    ($self->{admin} and $self->{servicename} and $self->{srvgrp});
-
+  my $self             = shift
+    || croak "init: Invalid parameters: expected self";
+  $self->{admin}       = shift
+    || croak "init: Invalid parameters: expected admin";
+  $self->{servicename} = shift
+    || croak "init: Invalid parameters: expected servicename";
+  $self->{srvgrp}      = shift
+    || croak "init: Invalid parameters: expected srvgrp";
+  
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
   $input_buffer{'TA_CLASS'}     = [ 'T_SVCGRP' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_get(\%input_buffer);
   carp($self->_status()) if ($error < 0);
 
+  $self->exists($output_buffer{'TA_OCCURS'}[0] eq '1');
+  
   delete $output_buffer{'TA_OCCURS'};
   delete $output_buffer{'TA_ERROR'};
   delete $output_buffer{'TA_MORE'};
@@ -82,6 +88,7 @@ sub update
 {
   my $self = shift;
 
+  croak "Does not exist!"          unless $self->exists();
   croak "servicename MUST be set"  unless $self->servicename();
   croak "srvgrp MUST be set"       unless $self->srvgrp();
 
@@ -103,6 +110,7 @@ sub _set_state
 {
   my ($self, $state) = @_;
 
+  croak "Does not exist!"          unless $self->exists();
   croak "servicename MUST be set"  unless $self->servicename();
   croak "srvgrp MUST be set"       unless $self->srvgrp();
 
@@ -208,8 +216,8 @@ Tuxedo::Admin::Service
         $service->srvgrp(), "\t",
         $service->rqaddr(), "\n";
 
-  $ok = $service->suspend() if ($self->state() eq 'ACTIVE');
-  $service->deactivate() if $ok;
+  $rc = $service->suspend() if ($self->state() eq 'ACTIVE');
+  $service->deactivate() unless ($rc < 0);
     
 =head1 DESCRIPTION
 
@@ -233,10 +241,10 @@ created.
 
 Removes the service.
 
-  $ok = $service->remove();
+  $rc = $service->remove();
 
 Croaks if the service is active or if the required servicename and srvgrp
-parameters are not set.  Returns true on success.
+parameters are not set.  $rc is non-negative on success.
 
 Example:
 
@@ -245,9 +253,9 @@ Example:
   warn "Can't remove a service while it is active.\n"
     unless ($service->state() eq 'INACTIVE');
   
-  $ok = $service->remove() if ($service->state() eq 'INACTIVE');
+  $rc = $service->remove() if ($service->state() eq 'INACTIVE');
 
-  print "hasta la vista baby!" if $ok;
+  print "hasta la vista baby!" unless ($rc < 0);
   
   $admin->print_status();
   
@@ -255,11 +263,11 @@ Example:
 
 Updates the service configuration with the values of the current object.
 
-  $ok = $service->update();
+  $rc = $service->update();
 
 Croaks if the required servicename and srvgrp parameters are not set.  When
 the service is active it may also be necessary for the srvid and rqaddr
-parameters to be set.  Returns true on success.
+parameters to be set.  $rc is non-negative on success.
 
 Example:
 
@@ -267,7 +275,7 @@ Example:
 
   $service->rqaddr('UPPER')
   
-  $ok = $service->update();
+  $rc = $service->update();
 
   $admin->print_status(*STDERR);
   
@@ -275,40 +283,40 @@ Example:
 
 Activates the service.
 
-  $ok = $service->activate();
+  $rc = $service->activate();
 
 Croaks if the service is active or if the required servicename and srvgrp
-parameters are not set.  Returns true on success.
+parameters are not set.  $rc is non-negative on success.
 
 Example:
 
   $service = $admin->service('TO_UPPER', 'APP_GRP_1');
-  $ok = $service->active()
+  $rc = $service->active()
     if ($service->state() ne 'ACTIVE');
   
 =head2 suspend()
 
 Suspends the service.
 
-  $ok = $service->suspend();
+  $rc = $service->suspend();
 
 Croaks if the service is not active or if the required servicename and srvgrp
-parameters are not set.  Returns true on success.
+parameters are not set.  $rc is non-negative on success.
 
 Example:
 
   $service = $admin->service('TO_UPPER', 'APP_GRP_1');
-  $ok = $service->suspend() 
+  $rc = $service->suspend() 
     if ($service->state() eq 'ACTIVE');
   
 =head2 deactivate()
 
 Deactivates the service.
 
-  $ok = $service->deactivate();
+  $rc = $service->deactivate();
 
 Croaks if the service is not suspended or if the required servicename and
-srvgrp parameters are not set.  Returns true on success.
+srvgrp parameters are not set.  $rc is non-negative on success.
 
 =head2 get/set methods
 
@@ -363,10 +371,6 @@ Example:
 =item trantime()
 
 =back
-
-=head2 BUGS
-
-Untested.
 
 =cut
 1;

@@ -78,19 +78,18 @@ use Data::Dumper;
 
 sub init
 {
-  my $self = shift;
-
-  ($self->{admin}, $self->{srvgrp}, $self->{srvid}) = @_;
-  croak("Invalid parameters") unless 
-    ((defined $self->{admin}) and
-     (defined $self->{srvgrp}) and
-     (defined $self->{srvid}));
+  my $self        = shift || croak "init: Invalid parameters: expected self";
+  $self->{admin}  = shift || croak "init: Invalid parameters: expected admin";
+  $self->{srvgrp} = shift || croak "init: Invalid parameters: expected srvgrp";
+  $self->{srvid}  = shift || croak "init: Invalid parameters: expected srvid"; 
 
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
   $input_buffer{'TA_CLASS'}     = [ 'T_SERVER' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_get(\%input_buffer);
   carp($self->_status()) if ($error < 0);
+
+  $self->exists($output_buffer{'TA_OCCURS'}[0] eq '1');
 
   delete $output_buffer{'TA_OCCURS'};
   delete $output_buffer{'TA_ERROR'};
@@ -113,15 +112,13 @@ sub init
       $self->{$key} = undef;
     }
   }
-  $self->exists(0);
-  $self->exists(1) if $self->servername();
 }
 
 sub exists
 {
   my $self = shift;
-  return $self->{exists} if (@_ == 0);
-  $self->{exists} = $_[0];
+  $self->{exists} = $_[0] if (@_ != 0);
+  return $self->{exists};
 }
 
 sub add
@@ -134,11 +131,22 @@ sub add
 
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
+  
+  # Constraints
+  
   $input_buffer{'TA_CLASS'}     = [ 'T_SERVER' ];
   $input_buffer{'TA_STATE'}     = [ 'NEW' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
-  carp($self->_status()) if ($error < 0);
-  $self->exists(1) unless ($error < 0);
+  
+  if ($error < 0)
+  {
+    carp($self->_status());
+  }
+  else
+  {
+    $self->exists(1);
+  }
+  
   return $error;
 }
 
@@ -152,6 +160,9 @@ sub update
 
   my (%input_buffer, $error, %output_buffer);
   %input_buffer = $self->_fields();
+  
+  # Constraints
+  
   $input_buffer{'TA_CLASS'}     = [ 'T_SERVER' ];
   ($error, %output_buffer) = $self->{admin}->_tmib_set(\%input_buffer);
   carp($self->_status()) if ($error < 0);
@@ -182,7 +193,9 @@ sub remove
   my $self = shift;
   croak "Can't remove server while it is booted"
     if ($self->state() eq 'ACTIVE');
-  return $self->_set_state('INVALID');
+  my $error = $self->_set_state('INVALID');
+  $self->exists(0);
+  return $error;
 }
 
 sub boot
@@ -268,9 +281,9 @@ Tuxedo::Admin::Server
         $server->srvgrp(), "\t",
         $server->numreq(), "\n";
 
-  $ok = $server->shutdown() 
+  $rc = $server->shutdown() 
     if ($server->exists() and ($server->state() ne 'INACTIVE'));
-  if ($ok)
+  unless ($rc < 0)
   {
     $server->max('10');
     $server->update();
@@ -313,10 +326,10 @@ Returns true if the server exists.
 
 Adds the server to the current Tuxedo application.
 
-  $ok = $server->add();
+  $rc = $server->add();
 
 Croaks if the server already exists or if the required srvid, srvgrp and
-servername parameters are not set.  Returns true on success.
+servername parameters are not set.  $rc is non-negative on success.
 
 Example:
 
@@ -330,8 +343,8 @@ Example:
   $server->maxgen('5');
   $server->restart('Y');
   
-  $ok = $server->add($server);
-  print "Welcome!" if $ok;
+  $rc = $server->add($server);
+  print "Welcome!" unless ($rc < 0);
   
   $admin->print_status();
   
@@ -339,10 +352,10 @@ Example:
 
 Removes the server from the current Tuxedo application.
 
-  $ok = $server->remove();
+  $rc = $server->remove();
 
 Croaks if the server is booted or if the required srvid, srvgrp and servername
-parameters are not set.  Returns true on success.
+parameters are not set.  $rc is non-negative on success.
 
 Example:
 
@@ -351,10 +364,10 @@ Example:
   warn "Can't remove a server while it is booted.\n"
     unless ($server->state() eq 'INACTIVE');
   
-  $ok = $server->remove()
+  $rc = $server->remove()
     if ($server->exists() and ($server->state() eq 'INACTIVE'));
 
-  print "hasta la vista baby!" if $ok;
+  print "hasta la vista baby!" unless ($rc < 0);
   
   $admin->print_status();
   
@@ -363,10 +376,10 @@ Example:
 Updates the server configuration in the current Tuxedo application with the
 values of the current object.
 
-  $ok = $server->update();
+  $rc = $server->update();
 
 Croaks if the server does not exist or the required srvid and srvgrp
-parameters are not set.  Returns true on success.
+parameters are not set.  $rc is non-negative on success.
 
 Example:
 
@@ -376,7 +389,7 @@ Example:
   $server->grace('0')
   $server->restart('Y');
   
-  $ok = $server->update();
+  $rc = $server->update();
 
   $admin->print_status(*STDERR);
   
@@ -384,28 +397,28 @@ Example:
 
 Starts the server.
 
-  $ok = $server->boot();
+  $rc = $server->boot();
 
-Croaks if the server is already booted.  Returns true on success.
+Croaks if the server is already booted.  $rc is non-negative on success.
 
 Example:
 
   $server = $admin->server('GW_GRP_1','30');
-  $ok = $server->boot()
+  $rc = $server->boot()
     if ($server->exists() and ($server->state() ne 'ACTIVE'));
   
 =head2 shutdown()
 
 Stops the server.
 
-  $ok = $server->shutdown();
+  $rc = $server->shutdown();
 
-Croaks if the server is not running.  Returns true on success.
+Croaks if the server is not running.  $rc is non-negative on success.
 
 Example:
 
   $server = $admin->server('GW_GRP_1','30');
-  $ok = $server->shutdown() 
+  $rc = $server->shutdown() 
     if ($server->exists() and ($server->state() ne 'INACTIVE'));
   
 =head2 services()
@@ -415,6 +428,14 @@ Returns the list of services advertised by this server.
   @services = $server->services();
 
 where @services is an array of references to Tuxedo::Admin::Service objects.
+
+Example:
+
+  print "Server: ", $server->servername(), " advertises:\n";
+  foreach $service ($server->services())
+  {
+    print "\t", $service->servicename(), "\n";
+  }
 
 =head2 get/set methods
 
