@@ -1,0 +1,10 @@
+Revision history for Perl extension Tuxedo::Admin.
+
+0.05  Mon Jun 21 23:11:53 2003
+  - Version 0.05 is the first public release.  It is not fully-functional, but
+    is useful for some tasks, particularly those involving groups and servers.
+    The API is not stable and is likely to change based on experience using
+    the various modules.  Only tested against Tuxedo 8.1, but I plan to ensure
+    that the library works with at least Tuxedo 6.5 and up.  'make test' does
+    not currently work, but there are some examples under the t/ directory.
+
